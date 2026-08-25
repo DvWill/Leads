@@ -6,6 +6,7 @@ import {
   UserStatus,
 } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { randomBytes } from "node:crypto";
 
 const prisma = new PrismaClient();
 
@@ -19,15 +20,21 @@ const IDS = {
 
 const DEFAULT_ADMIN_PASSWORD = "Admin@Prospecta123!";
 const DEFAULT_COLLABORATOR_PASSWORD = "Colab@Prospecta123!";
-const DEFAULT_ARTHUR_PASSWORD = "Arthur@Prospecta123!";
-const DEFAULT_ANA_PASSWORD = "Ana@Prospecta123!";
+
+function optionalDemoCredentials(emailName: string, passwordName: string) {
+  const email = process.env[emailName]?.trim().toLowerCase();
+  const password = process.env[passwordName]?.trim();
+  if (Boolean(email) !== Boolean(password)) {
+    throw new Error(`${emailName} e ${passwordName} devem ser configuradas juntas.`);
+  }
+  if (password && password.length < 12) throw new Error(`${passwordName} deve ter pelo menos 12 caracteres.`);
+  return { email, password, enabled: Boolean(email && password) };
+}
 
 function seedPassword(
   name:
     | "DEMO_ADMIN_PASSWORD"
-    | "DEMO_COLLABORATOR_PASSWORD"
-    | "DEMO_ARTHUR_PASSWORD"
-    | "DEMO_ANA_PASSWORD",
+    | "DEMO_COLLABORATOR_PASSWORD",
   fallback: string,
 ) {
   const configured = process.env[name]?.trim();
@@ -85,13 +92,15 @@ async function main() {
   const collaboratorEmail = (process.env.DEMO_COLLABORATOR_EMAIL ?? "colaborador@prospecta.local")
     .trim()
     .toLowerCase();
-  const arthurEmail = (process.env.DEMO_ARTHUR_EMAIL ?? "arthur@prospecta.local").trim().toLowerCase();
-  const anaEmail = (process.env.DEMO_ANA_EMAIL ?? "ana@prospecta.local").trim().toLowerCase();
+  const arthurCredentials = optionalDemoCredentials("DEMO_ARTHUR_EMAIL", "DEMO_ARTHUR_PASSWORD");
+  const anaCredentials = optionalDemoCredentials("DEMO_ANA_EMAIL", "DEMO_ANA_PASSWORD");
+  const arthurEmail = arthurCredentials.email ?? "arthur@prospecta.disabled";
+  const anaEmail = anaCredentials.email ?? "ana@prospecta.disabled";
   const [adminPasswordHash, collaboratorPasswordHash, arthurPasswordHash, anaPasswordHash] = await Promise.all([
     bcrypt.hash(seedPassword("DEMO_ADMIN_PASSWORD", DEFAULT_ADMIN_PASSWORD), 12),
     bcrypt.hash(seedPassword("DEMO_COLLABORATOR_PASSWORD", DEFAULT_COLLABORATOR_PASSWORD), 12),
-    bcrypt.hash(seedPassword("DEMO_ARTHUR_PASSWORD", DEFAULT_ARTHUR_PASSWORD), 12),
-    bcrypt.hash(seedPassword("DEMO_ANA_PASSWORD", DEFAULT_ANA_PASSWORD), 12),
+    bcrypt.hash(arthurCredentials.password ?? randomBytes(32).toString("base64url"), 12),
+    bcrypt.hash(anaCredentials.password ?? randomBytes(32).toString("base64url"), 12),
   ]);
   const resetSeedPasswords = process.env.SEED_RESET_PASSWORDS === "true";
 
@@ -139,15 +148,16 @@ async function main() {
     },
   });
 
-  const arthur = await prisma.user.upsert({
-    where: { email: arthurEmail },
+  await prisma.user.upsert({
+    where: { id: IDS.arthur },
     update: {
       organizationId: organization.id,
       name: "Arthur",
+      email: arthurEmail,
       role: UserRole.MANAGER,
-      status: UserStatus.ACTIVE,
+      status: arthurCredentials.enabled ? UserStatus.ACTIVE : UserStatus.INACTIVE,
       maxActiveLeads: null,
-      ...(resetSeedPasswords ? { passwordHash: arthurPasswordHash, passwordChangedAt: new Date() } : {}),
+      ...((resetSeedPasswords || !arthurCredentials.enabled) ? { passwordHash: arthurPasswordHash, passwordChangedAt: new Date() } : {}),
     },
     create: {
       id: IDS.arthur,
@@ -156,20 +166,21 @@ async function main() {
       email: arthurEmail,
       passwordHash: arthurPasswordHash,
       role: UserRole.MANAGER,
-      status: UserStatus.ACTIVE,
+      status: arthurCredentials.enabled ? UserStatus.ACTIVE : UserStatus.INACTIVE,
       maxActiveLeads: null,
     },
   });
 
-  const ana = await prisma.user.upsert({
-    where: { email: anaEmail },
+  await prisma.user.upsert({
+    where: { id: IDS.ana },
     update: {
       organizationId: organization.id,
       name: "Ana",
+      email: anaEmail,
       role: UserRole.MANAGER,
-      status: UserStatus.ACTIVE,
+      status: anaCredentials.enabled ? UserStatus.ACTIVE : UserStatus.INACTIVE,
       maxActiveLeads: null,
-      ...(resetSeedPasswords ? { passwordHash: anaPasswordHash, passwordChangedAt: new Date() } : {}),
+      ...((resetSeedPasswords || !anaCredentials.enabled) ? { passwordHash: anaPasswordHash, passwordChangedAt: new Date() } : {}),
     },
     create: {
       id: IDS.ana,
@@ -178,7 +189,7 @@ async function main() {
       email: anaEmail,
       passwordHash: anaPasswordHash,
       role: UserRole.MANAGER,
-      status: UserStatus.ACTIVE,
+      status: anaCredentials.enabled ? UserStatus.ACTIVE : UserStatus.INACTIVE,
       maxActiveLeads: null,
     },
   });

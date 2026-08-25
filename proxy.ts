@@ -38,7 +38,7 @@ function unauthorized(request: NextRequest): NextResponse {
   return NextResponse.redirect(loginUrl);
 }
 
-export function middleware(request: NextRequest): NextResponse {
+export function proxy(request: NextRequest): NextResponse {
   const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
 
   if (!["GET", "HEAD", "OPTIONS"].includes(request.method.toUpperCase())) {

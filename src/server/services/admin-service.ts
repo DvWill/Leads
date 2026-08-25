@@ -774,7 +774,7 @@ export async function updatePipelineStage(context: AuthContext, stageId: string,
           if (active <= 1) throw new DomainError("O funil precisa manter ao menos uma etapa ativa.", 409);
         }
         await validateStageAgainstExistingLeads(tx, context.organization.id, id, effective);
-        const updated = await tx.pipelineStage.update({
+        await tx.pipelineStage.update({
           where: { id },
           data: {
             name: input.name,
@@ -871,7 +871,7 @@ export async function updateLossReason(context: AuthContext, reasonId: string, r
       async (tx) => {
         const current = await tx.lossReason.findFirst({ where: { id, organizationId: context.organization.id } });
         if (!current) throw new DomainError("Motivo de perda não encontrado.", 404);
-        const updated = await tx.lossReason.update({
+        await tx.lossReason.update({
           where: { id },
           data: { name: input.name, description: nullable(input.description), isActive: input.isActive },
         });

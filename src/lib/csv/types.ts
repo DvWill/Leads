@@ -60,7 +60,7 @@ export interface CsvInspection extends CsvFormatDetection {
   warnings: string[];
 }
 
-export interface ParsedCsvRow extends CsvPreviewRow {}
+export type ParsedCsvRow = CsvPreviewRow;
 
 export type RowIssueSeverity = "error" | "warning";
 

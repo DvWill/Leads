@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AlertOctagon, ArrowLeft, Building2, Calendar, Check, ClipboardCheck, Clock3, FileText, History, MapPin, MessageCircle, PhoneCall, RefreshCw, Star, Tag, UserRound } from "lucide-react";
+import { AlertOctagon, ArrowLeft, Building2, Check, ClipboardCheck, Clock3, FileText, History, MapPin, MessageCircle, RefreshCw, Star, Tag, UserRound } from "lucide-react";
 import { requireAuth } from "@/src/server/auth";
 import { getLeadDetail } from "@/src/server/services/crm-query-service";
 import { Badge } from "@/src/components/ui/badge";

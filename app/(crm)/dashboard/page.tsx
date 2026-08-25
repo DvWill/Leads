@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Activity, ArrowRight, BriefcaseBusiness, CalendarCheck, Clock3, Import, MessageCircleReply, PhoneCall, Target, Trophy, Users } from "lucide-react";
+import { ArrowRight, BriefcaseBusiness, CalendarCheck, Clock3, Import, MessageCircleReply, PhoneCall, Target, Trophy, Users } from "lucide-react";
 import { requireAuth } from "@/src/server/auth";
 import { hasPermission } from "@/src/server/rbac";
 import { db } from "@/src/server/db";

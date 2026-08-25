@@ -26,7 +26,14 @@ function normalizedOrigin(value: string): string | null {
 function allowedOrigins(request: Request): Set<string> {
   const origins = new Set<string>();
 
-  for (const configured of [process.env.APP_URL, process.env.NEXT_PUBLIC_APP_URL]) {
+  for (const configured of [
+    process.env.APP_URL,
+    process.env.NEXT_PUBLIC_APP_URL,
+    process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : undefined,
+    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
+  ]) {
     if (!configured) continue;
     const origin = normalizedOrigin(configured);
     if (origin) origins.add(origin);
