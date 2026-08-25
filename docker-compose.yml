@@ -1,0 +1,28 @@
+name: prospecta-crm
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-prospecta}
+      POSTGRES_USER: ${POSTGRES_USER:-prospecta}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-prospecta_dev}
+      TZ: ${APP_TIMEZONE:-America/Sao_Paulo}
+      PGTZ: ${APP_TIMEZONE:-America/Sao_Paulo}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - prospecta_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  prospecta_postgres_data:
+
