@@ -3,13 +3,13 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light;
-  --background: #f5f7fb;
-  --foreground: #172033;
+  color-scheme: dark;
+  --background: #090713;
+  --foreground: #f5f3ff;
 }
 
 * {
-  border-color: #e6eaf0;
+  border-color: rgba(148, 123, 210, 0.22);
 }
 
 html {
@@ -18,35 +18,114 @@ html {
 
 body {
   min-height: 100vh;
-  background: var(--background);
+  background:
+    linear-gradient(135deg, rgba(124, 58, 237, 0.16), transparent 34%),
+    linear-gradient(215deg, rgba(20, 184, 166, 0.09), transparent 30%),
+    var(--background);
   color: var(--foreground);
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
 ::selection {
-  background: #b9ddfa;
+  background: #7c3aed;
+  color: #ffffff;
 }
 
 @layer components {
   .focus-ring {
-    @apply outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2;
+    @apply outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-slate-950;
   }
 
   .card {
-    @apply rounded-2xl border border-slate-200/80 bg-white shadow-card;
+    @apply rounded-2xl border border-violet-300/20 bg-slate-950/80 shadow-card backdrop-blur;
   }
 
   .field {
-    @apply focus-ring block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-500 focus:ring-brand-500;
+    @apply focus-ring block w-full rounded-xl border-violet-300/25 bg-slate-900/80 text-sm text-slate-100 placeholder:text-slate-500 focus:border-brand-500 focus:ring-brand-500;
   }
 
   .label {
-    @apply mb-1.5 block text-sm font-medium text-slate-700;
+    @apply mb-1.5 block text-sm font-medium text-slate-300;
   }
 
   .skeleton {
-    @apply animate-pulse rounded-lg bg-slate-200;
+    @apply animate-pulse rounded-lg bg-slate-800;
   }
+}
+
+input,
+select,
+textarea {
+  color-scheme: dark;
+}
+
+select option {
+  background: #130f22;
+  color: #f5f3ff;
+}
+
+.bg-white {
+  background-color: rgba(18, 14, 32, 0.96) !important;
+}
+
+.bg-slate-50,
+.bg-slate-50\/60,
+.bg-slate-50\/70,
+.bg-slate-100 {
+  background-color: rgba(30, 23, 48, 0.82) !important;
+}
+
+.bg-slate-200 {
+  background-color: rgba(61, 49, 93, 0.82) !important;
+}
+
+.bg-brand-50,
+.bg-brand-50\/40,
+.bg-brand-50\/50,
+.bg-brand-50\/80 {
+  background-color: rgba(124, 58, 237, 0.16) !important;
+}
+
+.bg-brand-100 {
+  background-color: rgba(139, 92, 246, 0.24) !important;
+}
+
+.text-slate-950,
+.text-slate-900,
+.text-slate-800 {
+  color: #f7f3ff !important;
+}
+
+.text-slate-700,
+.text-slate-600 {
+  color: #d8cfee !important;
+}
+
+.text-slate-500 {
+  color: #b5a9ce !important;
+}
+
+.text-slate-400 {
+  color: #8f83aa !important;
+}
+
+.border-slate-300,
+.border-slate-200,
+.border-slate-200\/80 {
+  border-color: rgba(167, 139, 250, 0.24) !important;
+}
+
+.hover\:bg-slate-50:hover,
+.hover\:bg-slate-50\/70:hover,
+.hover\:bg-slate-100:hover,
+.hover\:bg-brand-50\/40:hover {
+  background-color: rgba(49, 35, 80, 0.92) !important;
+}
+
+.hover\:text-slate-950:hover,
+.hover\:text-slate-900:hover,
+.hover\:text-slate-800:hover {
+  color: #ffffff !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

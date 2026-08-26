@@ -17,7 +17,17 @@ export default async function ImportacoesPage() {
     }),
     db.importJob.findMany({
       where: { organizationId: context.organization.id },
-      include: { createdBy: { select: { name: true } } },
+      select: {
+        id: true,
+        filename: true,
+        status: true,
+        totalRows: true,
+        createdRows: true,
+        updatedRows: true,
+        errorRows: true,
+        createdAt: true,
+        createdBy: { select: { name: true } },
+      },
       orderBy: { createdAt: "desc" },
       take: 20,
     }),

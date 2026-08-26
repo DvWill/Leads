@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, type ChangeEvent, type DragEvent } from "react";
+import { useRouter } from "next/navigation";
 import {
   AlertCircle,
   CheckCircle2,
@@ -95,6 +96,7 @@ const jobLabels: Record<string, string> = {
 };
 
 export function ImportPage({ users, jobs }: { users: User[]; jobs: Job[] }) {
+  const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<Preview | null>(null);
   const [mapping, setMapping] = useState<Record<string, string | null | undefined>>({});
@@ -176,6 +178,7 @@ export function ImportPage({ users, jobs }: { users: User[]; jobs: Job[] }) {
         setMapping(payload.mapping);
       } else {
         setResult(payload);
+        router.refresh();
         setNotice({ error: false, text: "Importação concluída. Os dados já estão disponíveis na carteira." });
       }
     } catch (error) {

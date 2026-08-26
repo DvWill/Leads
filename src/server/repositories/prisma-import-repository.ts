@@ -344,7 +344,118 @@ export class PrismaImportRepository implements ImportRepository {
 }
 
 class PrismaImportTransaction implements ImportRepositoryTransaction {
+  private initialStageId: string | null | undefined;
+  private assignedStageId: string | null | undefined;
+  private readonly tagIds = new Map<string, string>();
+  private readonly assigneeStates = new Map<
+    string,
+    { id: string; maxActiveLeads: number | null; activeLeadCount: number }
+  >();
+
   constructor(private readonly transaction: Prisma.TransactionClient) {}
+
+  private async getInitialStageId(organizationId: string): Promise<string> {
+    if (this.initialStageId !== undefined) {
+      if (!this.initialStageId) {
+        throw new Error("A etapa inicial 'Novo' não está configurada.");
+      }
+      return this.initialStageId;
+    }
+
+    const stage = await this.transaction.pipelineStage.findFirst({
+      where: {
+        organizationId,
+        key: "new",
+        isActive: true,
+      },
+      select: { id: true },
+    });
+    this.initialStageId = stage?.id ?? null;
+    if (!this.initialStageId) {
+      throw new Error("A etapa inicial 'Novo' não está configurada.");
+    }
+    return this.initialStageId;
+  }
+
+  private async getAssignedStageId(organizationId: string): Promise<string | null> {
+    if (this.assignedStageId !== undefined) return this.assignedStageId;
+
+    const stage = await this.transaction.pipelineStage.findFirst({
+      where: {
+        organizationId,
+        key: "assigned",
+        isActive: true,
+      },
+      select: { id: true },
+    });
+    this.assignedStageId = stage?.id ?? null;
+    return this.assignedStageId;
+  }
+
+  private async getAutomaticTagId(
+    organizationId: string,
+    actorId: string,
+    tagName: string,
+  ): Promise<string> {
+    const cached = this.tagIds.get(tagName);
+    if (cached) return cached;
+
+    const tag = await this.transaction.tag.upsert({
+      where: {
+        organizationId_name: {
+          organizationId,
+          name: tagName,
+        },
+      },
+      create: {
+        organizationId,
+        name: tagName,
+        color: automaticTagColors[tagName] ?? "#64748B",
+        isSystem: true,
+        createdById: actorId,
+      },
+      update: { isActive: true },
+      select: { id: true },
+    });
+    this.tagIds.set(tagName, tag.id);
+    return tag.id;
+  }
+
+  private async getAssigneeState(
+    organizationId: string,
+    assigneeId: string,
+  ): Promise<{ id: string; maxActiveLeads: number | null; activeLeadCount: number } | null> {
+    const cached = this.assigneeStates.get(assigneeId);
+    if (cached) return cached;
+
+    const user = await this.transaction.user.findFirst({
+      where: {
+        id: assigneeId,
+        organizationId,
+        status: UserStatus.ACTIVE,
+      },
+      select: {
+        id: true,
+        maxActiveLeads: true,
+        _count: {
+          select: {
+            assignedLeads: {
+              where: { archivedAt: null, stage: { isClosed: false } },
+            },
+          },
+        },
+      },
+    });
+    if (!user) return null;
+
+    const state = {
+      id: user.id,
+      maxActiveLeads: user.maxActiveLeads,
+      activeLeadCount: user._count.assignedLeads,
+    };
+    this.assigneeStates.set(assigneeId, state);
+    return state;
+  }
 
   async findDuplicate(
     organizationId: string,
@@ -380,15 +491,7 @@ class PrismaImportTransaction implements ImportRepositoryTransaction {
   }
 
   async createLead(input: CreateImportedLeadInput): Promise<CreatedLead> {
-    const stage = await this.transaction.pipelineStage.findFirst({
-      where: {
-        organizationId: input.organizationId,
-        key: "new",
-        isActive: true,
-      },
-      select: { id: true },
-    });
-    if (!stage) throw new Error("A etapa inicial 'Novo' não está configurada.");
+    const stageId = await this.getInitialStageId(input.organizationId);
 
     const lead = input.lead;
     const created = await this.transaction.lead.create({
@@ -423,7 +526,7 @@ class PrismaImportTransaction implements ImportRepositoryTransaction {
         latitude: lead.latitude,
         longitude: lead.longitude,
         rawData: json(lead.rawData),
-        stageId: stage.id,
+        stageId,
         importJobId: input.importJobId,
         createdById: input.actorId,
       },
@@ -435,7 +538,7 @@ class PrismaImportTransaction implements ImportRepositoryTransaction {
         organizationId: input.organizationId,
         leadId: created.id,
         fromStageId: null,
-        toStageId: stage.id,
+        toStageId: stageId,
         changedById: input.actorId,
         reason: "Lead importado por CSV",
         metadata: json({ importJobId: input.importJobId }),
@@ -443,29 +546,17 @@ class PrismaImportTransaction implements ImportRepositoryTransaction {
     });
 
     for (const tagName of input.automaticTags) {
-      const tag = await this.transaction.tag.upsert({
-        where: {
-          organizationId_name: {
-            organizationId: input.organizationId,
-            name: tagName,
-          },
-        },
-        create: {
-          organizationId: input.organizationId,
-          name: tagName,
-          color: automaticTagColors[tagName] ?? "#64748B",
-          isSystem: true,
-          createdById: input.actorId,
-        },
-        update: { isActive: true },
-        select: { id: true },
-      });
+      const tagId = await this.getAutomaticTagId(
+        input.organizationId,
+        input.actorId,
+        tagName,
+      );
       await this.transaction.leadTag.upsert({
-        where: { leadId_tagId: { leadId: created.id, tagId: tag.id } },
+        where: { leadId_tagId: { leadId: created.id, tagId } },
         create: {
           organizationId: input.organizationId,
           leadId: created.id,
-          tagId: tag.id,
+          tagId,
           createdById: input.actorId,
         },
         update: {},
@@ -483,7 +574,7 @@ class PrismaImportTransaction implements ImportRepositoryTransaction {
           title: lead.title,
           placeId: lead.placeId,
           importJobId: input.importJobId,
-          stageId: stage.id,
+          stageId,
         }),
       },
     });
@@ -529,25 +620,16 @@ class PrismaImportTransaction implements ImportRepositoryTransaction {
   }
 
   async assignLead(input: AssignImportedLeadInput): Promise<boolean> {
-    const user = await this.transaction.user.findFirst({
-      where: {
-        id: input.assigneeId,
-        organizationId: input.organizationId,
-        status: UserStatus.ACTIVE,
-      },
-      select: { id: true, maxActiveLeads: true },
-    });
-    if (!user) return false;
-    if (user.maxActiveLeads !== null) {
-      const activeCount = await this.transaction.lead.count({
-        where: {
-          organizationId: input.organizationId,
-          assigneeId: user.id,
-          archivedAt: null,
-          stage: { isClosed: false },
-        },
-      });
-      if (activeCount >= user.maxActiveLeads) return false;
+    const assignee = await this.getAssigneeState(
+      input.organizationId,
+      input.assigneeId,
+    );
+    if (!assignee) return false;
+    if (
+      assignee.maxActiveLeads !== null &&
+      assignee.activeLeadCount >= assignee.maxActiveLeads
+    ) {
+      return false;
     }
 
     const lead = await this.transaction.lead.findFirst({
@@ -557,14 +639,7 @@ class PrismaImportTransaction implements ImportRepositoryTransaction {
     if (!lead) throw new Error("Lead da atribuição não pertence à organização.");
     const assignedStage =
       lead.stage.key === "new"
-        ? await this.transaction.pipelineStage.findFirst({
-            where: {
-              organizationId: input.organizationId,
-              key: "assigned",
-              isActive: true,
-            },
-            select: { id: true },
-          })
+        ? await this.getAssignedStageId(input.organizationId)
         : null;
     if (lead.stage.key === "new" && !assignedStage) {
       throw new Error("A etapa 'Atribuído' não está configurada ou está inativa.");
@@ -573,8 +648,8 @@ class PrismaImportTransaction implements ImportRepositoryTransaction {
     await this.transaction.lead.update({
       where: { id: lead.id },
       data: {
-        assigneeId: user.id,
-        ...(assignedStage ? { stageId: assignedStage.id } : {}),
+        assigneeId: assignee.id,
+        ...(assignedStage ? { stageId: assignedStage } : {}),
       },
     });
     await this.transaction.leadAssignment.create({
@@ -582,7 +657,7 @@ class PrismaImportTransaction implements ImportRepositoryTransaction {
         organizationId: input.organizationId,
         leadId: lead.id,
         previousAssigneeId: lead.assigneeId,
-        assigneeId: user.id,
+        assigneeId: assignee.id,
         assignedById: input.actorId,
         reason: AssignmentReason.IMPORT,
       },
@@ -593,7 +668,7 @@ class PrismaImportTransaction implements ImportRepositoryTransaction {
           organizationId: input.organizationId,
           leadId: lead.id,
           fromStageId: lead.stageId,
-          toStageId: assignedStage.id,
+          toStageId: assignedStage,
           changedById: input.actorId,
           reason: "Atribuição durante importação CSV",
           metadata: json({ assignmentReason: input.reason }),
@@ -609,12 +684,13 @@ class PrismaImportTransaction implements ImportRepositoryTransaction {
         entityId: lead.id,
         before: json({ assigneeId: lead.assigneeId, stageId: lead.stageId }),
         after: json({
-          assigneeId: user.id,
-          stageId: assignedStage?.id ?? lead.stageId,
+          assigneeId: assignee.id,
+          stageId: assignedStage ?? lead.stageId,
           reason: input.reason,
         }),
       },
     });
+    assignee.activeLeadCount += 1;
     return true;
   }
 

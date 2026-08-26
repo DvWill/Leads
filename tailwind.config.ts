@@ -6,18 +6,18 @@ export default {
   theme: {
     extend: {
       colors: {
-        ink: "#172033",
+        ink: "#0b0714",
         brand: {
-          50: "#eef8ff",
-          100: "#d8efff",
-          500: "#1788e5",
-          600: "#0870c8",
-          700: "#095aa1",
-          900: "#0b365d"
+          50: "#f4edff",
+          100: "#e8d9ff",
+          500: "#9b5cff",
+          600: "#7c3aed",
+          700: "#6d28d9",
+          900: "#2e1065"
         }
       },
       boxShadow: {
-        card: "0 1px 2px rgba(16,24,40,.05), 0 8px 24px rgba(16,24,40,.04)"
+        card: "0 1px 2px rgba(0,0,0,.28), 0 16px 40px rgba(12,7,28,.34)"
       }
     },
   },

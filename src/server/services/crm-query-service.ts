@@ -151,7 +151,7 @@ export async function listLeads(context: AuthContext, filters: LeadListFilters) 
     db.lead.findMany({
       where,
       select: {
-        id: true, title: true, phoneOriginal: canViewPhone, phoneNormalized: canViewPhone, address: true, city: true, state: true,
+        id: true, title: true, phoneOriginal: canViewPhone, phoneNormalized: canViewPhone, address: true, city: true, state: true, searchString: true,
         categoryName: true, placeId: true, priority: true, temperature: true, returnStatus: true, totalScore: true, reviewsCount: true,
         temporarilyClosed: true, permanentlyClosed: true, firstContactAt: true, lastActivityAt: true, nextFollowUpAt: true,
         stage: { select: { id: true, key: true, name: true, color: true, position: true, blocksContact: true } },
