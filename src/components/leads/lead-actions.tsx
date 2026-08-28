@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { Check, Clipboard, ExternalLink, Loader2, MapPinned, MessageCircle, Phone, X } from "lucide-react";
+import { Check, Clipboard, ExternalLink, Loader2, MapPinned, MessageCircle, Phone, Trash2, X } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { buildLeadWhatsAppMessage, type WhatsAppFilterContext, type WhatsAppLeadContext } from "@/src/lib/whatsapp-message";
 
@@ -15,9 +15,11 @@ type Props = {
   blocked?: boolean;
   lead?: WhatsAppLeadContext;
   filters?: WhatsAppFilterContext;
+  canDelete?: boolean;
+  afterDeleteHref?: string;
 };
 
-export function LeadActions({ leadId, phone, mapsUrl, compact = false, blocked = false, lead, filters }: Props) {
+export function LeadActions({ leadId, phone, mapsUrl, compact = false, blocked = false, lead, filters, canDelete = false, afterDeleteHref }: Props) {
   const router = useRouter();
   const [modal, setModal] = useState(false);
   const [sent, setSent] = useState(true);
@@ -27,6 +29,8 @@ export function LeadActions({ leadId, phone, mapsUrl, compact = false, blocked =
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
   const [messageCopied, setMessageCopied] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const digits = phone?.replace(/\D/g, "") ?? "";
   const whatsappMessage = lead ? buildLeadWhatsAppMessage(lead, filters) : "";
 
@@ -80,6 +84,22 @@ export function LeadActions({ leadId, phone, mapsUrl, compact = false, blocked =
     }
   }
 
+  async function removeLead() {
+    if (!window.confirm("Excluir este lead da carteira? O histórico será preservado para auditoria.")) return;
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      const response = await fetch(`/api/leads/${leadId}`, { method: "DELETE" });
+      const payload = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(payload.error ?? "Não foi possível excluir o lead.");
+      if (afterDeleteHref) router.replace(afterDeleteHref);
+      else router.refresh();
+    } catch (cause) {
+      setDeleteError(cause instanceof Error ? cause.message : "Não foi possível excluir o lead.");
+      setDeleting(false);
+    }
+  }
+
   const linkClass = "focus-ring grid size-9 place-items-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:border-brand-300 hover:text-brand-600 disabled:cursor-not-allowed disabled:opacity-40";
   return (
     <>
@@ -89,7 +109,9 @@ export function LeadActions({ leadId, phone, mapsUrl, compact = false, blocked =
         <button className={linkClass} onClick={openWhatsApp} disabled={!phone || blocked} aria-label="Abrir WhatsApp"><MessageCircle className="size-4" /></button>
         {mapsUrl ? <a className={linkClass} href={mapsUrl} target="_blank" rel="noreferrer" aria-label="Abrir Google Maps"><MapPinned className="size-4" /></a> : null}
         {!compact ? <a className={linkClass} href={`/leads/${leadId}`} aria-label="Abrir ficha"><ExternalLink className="size-4" /></a> : null}
+        {canDelete ? <button className={`${linkClass} hover:border-rose-300 hover:text-rose-600`} onClick={removeLead} disabled={deleting} aria-label="Excluir lead" title="Excluir lead">{deleting ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}</button> : null}
       </div>
+      {deleteError ? <p className="mt-1 max-w-56 text-xs text-rose-600" role="alert">{deleteError}</p> : null}
 
       {modal ? createPortal(
         <div className="fixed inset-0 z-[1000] grid place-items-center overflow-y-auto bg-slate-950/70 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="whatsapp-title">

@@ -123,7 +123,7 @@ export type LeadListFilters = {
 };
 
 export async function listLeads(context: AuthContext, filters: LeadListFilters) {
-  const pageSize = Math.min(Math.max(filters.pageSize ?? (filters.view === "kanban" ? 200 : 25), 1), 200);
+  const pageSize = Math.min(Math.max(filters.pageSize ?? (filters.view === "kanban" ? 60 : 25), 1), 100);
   const page = Math.max(filters.page ?? 1, 1);
   const canViewPhone = hasPermission(context, "LEAD_VIEW_PHONE");
   const and: Prisma.LeadWhereInput[] = [{ ...leadAccessWhere(context), archivedAt: null }];
@@ -159,12 +159,20 @@ export async function listLeads(context: AuthContext, filters: LeadListFilters) 
         tags: { select: { tag: { select: { id: true, name: true, color: true } } } },
       },
       orderBy: [{ nextFollowUpAt: { sort: "asc", nulls: "last" } }, { priority: "desc" }, { createdAt: "desc" }],
-      skip: filters.view === "kanban" ? 0 : (page - 1) * pageSize,
+      skip: (page - 1) * pageSize,
       take: pageSize,
     }),
     db.lead.count({ where }),
-    db.pipelineStage.findMany({ where: { organizationId: context.organization.id, isActive: true }, orderBy: { position: "asc" } }),
-    db.tag.findMany({ where: { organizationId: context.organization.id, isActive: true }, orderBy: { name: "asc" } }),
+    db.pipelineStage.findMany({
+      where: { organizationId: context.organization.id, isActive: true },
+      select: { id: true, name: true, color: true, position: true, blocksContact: true },
+      orderBy: { position: "asc" },
+    }),
+    db.tag.findMany({
+      where: { organizationId: context.organization.id, isActive: true },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
     db.lead.findMany({ where: { ...leadAccessWhere(context), archivedAt: null, city: { not: null } }, distinct: ["city"], select: { city: true }, orderBy: { city: "asc" } }),
     db.lead.findMany({ where: { ...leadAccessWhere(context), archivedAt: null, categoryName: { not: null } }, distinct: ["categoryName"], select: { categoryName: true }, orderBy: { categoryName: "asc" } }),
   ]);
@@ -197,7 +205,16 @@ export async function getLeadDetail(context: AuthContext, id: string) {
     db.lossReason.findMany({ where: { organizationId: context.organization.id, isActive: true }, orderBy: { position: "asc" } }),
     hasPermission(context, "LEAD_ASSIGN") ? db.user.findMany({ where: { organizationId: context.organization.id, status: UserStatus.ACTIVE }, select: { id: true, name: true }, orderBy: { name: "asc" } }) : Promise.resolve([]),
   ]);
-  return { lead, stages, reasons, users, canViewPhone, canAssign: hasPermission(context, "LEAD_ASSIGN"), canOverrideDnc: hasPermission(context, "DO_NOT_CONTACT_OVERRIDE") };
+  return {
+    lead,
+    stages,
+    reasons,
+    users,
+    canViewPhone,
+    canAssign: hasPermission(context, "LEAD_ASSIGN"),
+    canDelete: hasPermission(context, "LEAD_DELETE"),
+    canOverrideDnc: hasPermission(context, "DO_NOT_CONTACT_OVERRIDE"),
+  };
 }
 
 export async function getTasks(context: AuthContext, filter: "all" | "today" | "overdue" | "upcoming" = "all") {

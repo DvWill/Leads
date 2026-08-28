@@ -1,6 +1,7 @@
 import { compare, hash } from "bcryptjs";
 import { createHash, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
+import { cache } from "react";
 
 import { newPasswordSchema, normalizeEmail } from "../lib/validation/auth";
 import { db } from "./db";
@@ -368,13 +369,17 @@ async function findSessionByToken(
   return contextFromUser(session, session.user);
 }
 
-export async function getCurrentSession(
-  options: CurrentSessionOptions = {},
-): Promise<AuthContext | null> {
+const getRequestSession = cache(async (touch: boolean): Promise<AuthContext | null> => {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
   if (!token) return null;
-  return findSessionByToken(token, options.touch ?? true);
+  return findSessionByToken(token, touch);
+});
+
+export async function getCurrentSession(
+  options: CurrentSessionOptions = {},
+): Promise<AuthContext | null> {
+  return getRequestSession(options.touch ?? true);
 }
 
 export async function requireAuth(): Promise<AuthContext> {

@@ -164,6 +164,41 @@ export async function changeLeadStage(context: AuthContext, leadId: string, inpu
   });
 }
 
+export async function archiveLead(context: AuthContext, leadId: string) {
+  if (!hasPermission(context, "LEAD_DELETE")) throw new AuthorizationError();
+
+  return db.$transaction(async (tx) => {
+    const lead = await tx.lead.findFirst({
+      where: { id: leadId, ...leadAccessWhere(context), archivedAt: null },
+      select: { id: true, title: true, assigneeId: true, stageId: true },
+    });
+    if (!lead) throw new DomainError("Lead não encontrado.", 404);
+
+    const archivedAt = new Date();
+    await tx.lead.update({
+      where: { id: lead.id },
+      data: { archivedAt },
+    });
+    await tx.task.updateMany({
+      where: { organizationId: context.organization.id, leadId: lead.id, status: TaskStatus.OPEN },
+      data: { status: TaskStatus.CANCELED },
+    });
+    await tx.auditLog.create({
+      data: {
+        organizationId: context.organization.id,
+        actorId: context.user.id,
+        action: AuditAction.ARCHIVE,
+        entityType: "Lead",
+        entityId: lead.id,
+        before: json({ title: lead.title, assigneeId: lead.assigneeId, stageId: lead.stageId }),
+        after: json({ archivedAt }),
+      },
+    });
+
+    return { id: lead.id, archivedAt };
+  });
+}
+
 export async function assignLeads(context: AuthContext, raw: unknown) {
   if (!hasPermission(context, "LEAD_ASSIGN")) throw new AuthorizationError();
   const input = assignLeadsSchema.parse(raw);

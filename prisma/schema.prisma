@@ -581,6 +581,10 @@ model Lead {
   @@index([organizationId, categoryName])
   @@index([organizationId, searchString])
   @@index([organizationId, priority])
+  @@index([organizationId, archivedAt, city])
+  @@index([organizationId, archivedAt, categoryName])
+  @@index([organizationId, archivedAt, nextFollowUpAt, priority(sort: Desc), createdAt(sort: Desc)], map: "leads_list_order_idx")
+  @@index([organizationId, assigneeId, archivedAt, nextFollowUpAt, priority(sort: Desc), createdAt(sort: Desc)], map: "leads_assignee_list_order_idx")
   @@map("leads")
 }
 
