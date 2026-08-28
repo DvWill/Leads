@@ -86,10 +86,13 @@ export function AppShell({ children, user, organization, canAdmin, canImport }: 
     <div className="min-h-screen lg:pl-64">
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r lg:block">{sidebar}</aside>
       {open ? <div className="fixed inset-0 z-50 lg:hidden"><button className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" aria-label="Fechar menu" onClick={() => setOpen(false)} /><aside className="absolute inset-y-0 left-0 w-[min(19rem,88vw)] shadow-2xl">{sidebar}</aside></div> : null}
-      <header className="sticky top-0 z-30 flex h-16 items-center border-b bg-white/90 px-4 backdrop-blur lg:hidden">
-        <button className="focus-ring rounded-xl p-2 text-slate-600" onClick={() => setOpen(true)} aria-label="Abrir menu"><Menu className="size-5" /></button>
-        <span className="ml-3 font-bold">Prospecta</span>
-        <span className="ml-auto inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700"><ShieldCheck className="size-4" /> Seguro</span>
+      <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-violet-300/20 bg-slate-950/95 px-4 shadow-[0_8px_28px_rgba(4,2,12,.28)] backdrop-blur-xl lg:hidden">
+        <button className="focus-ring grid size-10 shrink-0 place-items-center rounded-xl border border-violet-300/20 bg-violet-500/10 text-violet-200 transition hover:bg-violet-500/20 active:scale-95" onClick={() => setOpen(true)} aria-label="Abrir menu"><Menu className="size-5" /></button>
+        <Link href="/dashboard" className="focus-ring flex min-w-0 items-center gap-2 rounded-lg text-slate-50">
+          <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-brand-600 text-white shadow-sm"><Sparkles className="size-3.5" aria-hidden /></span>
+          <span className="truncate text-sm font-bold tracking-tight">Prospecta</span>
+        </Link>
+        <span className="ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1.5 text-xs font-semibold text-emerald-300"><ShieldCheck className="size-3.5" aria-hidden />Seguro</span>
       </header>
       <main className="mx-auto max-w-[1600px] p-4 sm:p-6 lg:p-8">{children}</main>
     </div>
