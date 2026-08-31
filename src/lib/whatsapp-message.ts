@@ -50,25 +50,25 @@ function intentFor(occupation: string): string {
   const normalized = occupation.toLocaleLowerCase("pt-BR");
 
   if (/restaurante|pizzaria|lanchonete|bar|caf[eé]|food|hamburg/i.test(normalized)) {
-    return "atrair mais pedidos e organizar melhor o atendimento pelo WhatsApp";
+    return "apresentar o cardápio, destacar os diferenciais da casa e transformar mais visitas em pedidos";
   }
   if (/cl[ií]nica|m[eé]dic|dent|odont|est[eé]tica|sa[uú]de|fisi/i.test(normalized)) {
-    return "aumentar agendamentos e reduzir perda de contatos no WhatsApp";
+    return "apresentar os tratamentos com clareza, transmitir confiança e gerar mais agendamentos";
   }
   if (/imobili|construt|arquitet|engenh/i.test(normalized)) {
-    return "transformar interessados em visitas e propostas com mais previsibilidade";
+    return "valorizar os imóveis ou projetos e transformar mais interessados em visitas e propostas";
   }
   if (/academia|fitness|pilates|cross|esporte/i.test(normalized)) {
-    return "converter mais interessados em matrículas e acompanhar retornos";
+    return "mostrar a estrutura, os planos e os resultados para converter mais interessados em matrículas";
   }
   if (/auto|carro|moto|oficina|mec[aâ]nic|ve[ií]cul/i.test(normalized)) {
-    return "organizar orçamentos, retornos e oportunidades que chegam pelo WhatsApp";
+    return "destacar os serviços, facilitar pedidos de orçamento e gerar novas oportunidades";
   }
   if (/advoc|contabil|consult|servi[cç]o/i.test(normalized)) {
-    return "qualificar contatos e acompanhar oportunidades sem perder histórico";
+    return "explicar os serviços, reforçar a autoridade da empresa e captar contatos mais qualificados";
   }
 
-  return "organizar contatos, retornos e oportunidades que chegam pelo WhatsApp";
+  return "apresentar os serviços com mais profissionalismo e transformar visitantes em novos contatos";
 }
 
 export function buildLeadWhatsAppMessage(
@@ -87,10 +87,10 @@ export function buildLeadWhatsAppMessage(
 
   return [
     `Olá, tudo bem? Falo com alguém da ${lead.title}?`,
-    `Vi que vocês atuam com ${occupation}${location ? ` em ${location}` : ""}.`,
+    `Somos da A Sua Publicidade e vimos que vocês atuam com ${occupation}${location ? ` em ${location}` : ""}.`,
     source,
     staleContext,
-    `Queria entender se hoje faz sentido conversar sobre como ${intentFor(occupation)}.`,
-    "Posso te mandar uma ideia rápida por aqui?",
+    `Criamos Landing Pages pensadas para ${intentFor(occupation)}. Como adicional, também oferecemos um SaaS interno para organizar os contatos e acompanhar cada oportunidade em um só lugar.`,
+    "Posso te enviar uma ideia rápida de como isso funcionaria para vocês?",
   ].filter(Boolean).join("\n\n");
 }
